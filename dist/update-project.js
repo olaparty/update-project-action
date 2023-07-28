@@ -25,50 +25,76 @@ let octokit;
 function fetchContentMetadata(contentId, fieldName, projectNumber, owner) {
     return __awaiter(this, void 0, void 0, function* () {
         const result = yield octokit.graphql(`
+    fragment foundItem on ProjectV2Item {
+      id
+      project {
+        number
+        owner {
+          ... on Organization {
+            login
+          }
+          ... on User {
+            login
+          }
+        }
+      }
+      field: fieldValueByName(name: $fieldName) {
+        ... on ProjectV2ItemFieldSingleSelectValue {
+          value: name
+        }
+        ... on ProjectV2ItemFieldNumberValue {
+          value: number
+        }
+        ... on ProjectV2ItemFieldTextValue {
+          value: text
+        }
+        ... on ProjectV2ItemFieldDateValue {
+          value: date
+        }
+      }
+    }
+    
     query result($contentId: ID!, $fieldName: String!) {
-      node(id: $contentId) {
+      issue: node(id: $contentId) {
         ... on Issue {
           id
           title
           projectItems(first: 100) {
             nodes {
+              ...foundItem
+            }
+          }
+        }
+      }
+      item: node(id: $contentId) {
+        ... on ProjectV2Item {
+          ...foundItem
+          content {
+            ... on Issue {
               id
-              project {
-                number
-                owner {
-                  ... on Organization {
-                    login
-                  }
-                  ... on User {
-                    login
-                  }
-                }
-              }
-              field: fieldValueByName(name: $fieldName) {
-                ... on ProjectV2ItemFieldSingleSelectValue {
-                      value: name
-                }
-                ... on ProjectV2ItemFieldNumberValue {
-                      value: number
-                }
-                ... on ProjectV2ItemFieldTextValue {
-                      value: text
-                }
-                ... on ProjectV2ItemFieldDateValue {
-                      value: date
-                }
-              }
+              title
+            }
+            ... on DraftIssue {
+              title
             }
           }
         }
       }
     }
   `, { contentId, fieldName });
-        const item = result.node.projectItems.nodes.find((node) => {
-            return (node.project.number === projectNumber &&
-                node.project.owner.login === owner);
-        });
-        const itemTitle = result.node.title;
+        let item;
+        let itemTitle = "";
+        if (result.item) {
+            item = result.item;
+            itemTitle = result.item.content.title;
+        }
+        else if (result.issue) {
+            item = result.issue.projectItems.nodes.find((node) => {
+                return (node.project.number === projectNumber &&
+                    node.project.owner.login === owner);
+            });
+            itemTitle = result.node.title;
+        }
         if (!ensureExists(item, "content", `ID ${contentId}`)) {
             return {};
         }

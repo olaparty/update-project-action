@@ -127,7 +127,7 @@ describe("with Octokit setup", () => {
   ) => {
     const data = {
       data: {
-        node: {
+        issue: {
           title: title,
           projectItems: {
             nodes: [item, { project: { number: 2, owner: { login: "foo" } } }],

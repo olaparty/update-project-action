@@ -21,39 +21,57 @@ export async function fetchContentMetadata(
 ): Promise<GraphQlQueryResponseData> {
   const result: GraphQlQueryResponseData = await octokit.graphql(
     `
+    fragment foundItem on ProjectV2Item {
+      id
+      project {
+        number
+        owner {
+          ... on Organization {
+            login
+          }
+          ... on User {
+            login
+          }
+        }
+      }
+      field: fieldValueByName(name: $fieldName) {
+        ... on ProjectV2ItemFieldSingleSelectValue {
+          value: name
+        }
+        ... on ProjectV2ItemFieldNumberValue {
+          value: number
+        }
+        ... on ProjectV2ItemFieldTextValue {
+          value: text
+        }
+        ... on ProjectV2ItemFieldDateValue {
+          value: date
+        }
+      }
+    }
+    
     query result($contentId: ID!, $fieldName: String!) {
-      node(id: $contentId) {
+      issue: node(id: $contentId) {
         ... on Issue {
           id
           title
           projectItems(first: 100) {
             nodes {
+              ...foundItem
+            }
+          }
+        }
+      }
+      item: node(id: $contentId) {
+        ... on ProjectV2Item {
+          ...foundItem
+          content {
+            ... on Issue {
               id
-              project {
-                number
-                owner {
-                  ... on Organization {
-                    login
-                  }
-                  ... on User {
-                    login
-                  }
-                }
-              }
-              field: fieldValueByName(name: $fieldName) {
-                ... on ProjectV2ItemFieldSingleSelectValue {
-                      value: name
-                }
-                ... on ProjectV2ItemFieldNumberValue {
-                      value: number
-                }
-                ... on ProjectV2ItemFieldTextValue {
-                      value: text
-                }
-                ... on ProjectV2ItemFieldDateValue {
-                      value: date
-                }
-              }
+              title
+            }
+            ... on DraftIssue {
+              title
             }
           }
         }
@@ -63,15 +81,22 @@ export async function fetchContentMetadata(
     { contentId, fieldName }
   );
 
-  const item = result.node.projectItems.nodes.find(
-    (node: GraphQlQueryResponseData) => {
-      return (
-        node.project.number === projectNumber &&
-        node.project.owner.login === owner
-      );
-    }
-  );
-  const itemTitle = result.node.title;
+  let item;
+  let itemTitle: string = "";
+  if (result.item) {
+    item = result.item;
+    itemTitle = result.item.content.title;
+  } else if (result.issue) {
+    item = result.issue.projectItems.nodes.find(
+      (node: GraphQlQueryResponseData) => {
+        return (
+          node.project.number === projectNumber &&
+          node.project.owner.login === owner
+        );
+      }
+    );
+    itemTitle = result.issue.title;
+  }
 
   if (!ensureExists(item, "content", `ID ${contentId}`)) {
     return {};
