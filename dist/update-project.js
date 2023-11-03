@@ -93,7 +93,7 @@ function fetchContentMetadata(contentId, fieldName, projectNumber, owner) {
                 return (node.project.number === projectNumber &&
                     node.project.owner.login === owner);
             });
-            itemTitle = result.node.title;
+            itemTitle = result.issue.title;
         }
         if (!ensureExists(item, "content", `ID ${contentId}`)) {
             return {};
@@ -213,6 +213,10 @@ function updateField(projectMetadata, contentMetadata, value) {
         if (projectMetadata.field.fieldType === "single_select") {
             valueToSet = projectMetadata.field.optionId;
             valueType = "singleSelectOptionId";
+        }
+        else if (projectMetadata.field.fieldType === "iteration") {
+            valueToSet = value;
+            valueType = "iterationId";
         }
         else {
             valueToSet = value;

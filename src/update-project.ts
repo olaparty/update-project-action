@@ -241,6 +241,9 @@ export async function updateField(
   if (projectMetadata.field.fieldType === "single_select") {
     valueToSet = projectMetadata.field.optionId;
     valueType = "singleSelectOptionId";
+  } else if (projectMetadata.field.fieldType === "iteration") {
+    valueToSet = value;
+    valueType = "iterationId";
   } else {
     valueToSet = value;
     valueType = projectMetadata.field.fieldType;
