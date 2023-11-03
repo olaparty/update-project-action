@@ -84,11 +84,12 @@ function fetchContentMetadata(contentId, fieldName, projectNumber, owner) {
   `, { contentId, fieldName });
         let item;
         let itemTitle = "";
-        if (result.item) {
+        const notEmpty = (o) => Object.keys(o !== null && o !== void 0 ? o : {}).length > 0;
+        if (notEmpty(result.item)) {
             item = result.item;
             itemTitle = result.item.content.title;
         }
-        else if (result.issue) {
+        else if (notEmpty(result.issue)) {
             item = result.issue.projectItems.nodes.find((node) => {
                 return (node.project.number === projectNumber &&
                     node.project.owner.login === owner);

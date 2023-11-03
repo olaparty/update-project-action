@@ -83,10 +83,11 @@ export async function fetchContentMetadata(
 
   let item;
   let itemTitle: string = "";
-  if (result.item) {
+  const notEmpty = (o: Object) => Object.keys(o ?? {}).length > 0;
+  if (notEmpty(result.item)) {
     item = result.item;
     itemTitle = result.item.content.title;
-  } else if (result.issue) {
+  } else if (notEmpty(result.issue)) {
     item = result.issue.projectItems.nodes.find(
       (node: GraphQlQueryResponseData) => {
         return (
